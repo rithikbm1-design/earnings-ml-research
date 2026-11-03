@@ -8,17 +8,19 @@ A reproducible research pipeline built entirely on **free data**: SEC EDGAR
 | | Result |
 |---|---|
 | Can ML forecast next-quarter profitability changes? | **Yes.** Gradient boosting: out-of-sample R² = **0.38** vs. the seasonal random walk; mean quarterly rank IC = **0.52** (t = 21.8). |
-| Do those forecasts predict announcement returns, CAR[-1,+1]? | **No.** Q5–Q1 spread = **0.00%** (t = 0.01) for gradient boosting; +0.30% (t = 0.83) for ridge. Fama–MacBeth slopes are insignificant with or without controls. |
-| Post-announcement drift, CAR[+2,+21]? | **No.** All forecast-sorted spreads have \|t\| < 1. |
+| Do those forecasts predict announcement returns, CAR[-1,+1]? | **No detectable link.** Q5–Q1 spread = **0.00%** (t = 0.01) for gradient boosting; +0.30% (t = 0.83) for ridge. Fama–MacBeth slopes are insignificant with or without controls. |
+| Post-announcement drift, CAR[+2,+21]? | **No detectable link.** All forecast-sorted spreads have \|t\| < 1. |
 | Is the event study wired correctly? | **Yes (look-ahead check).** Sorting on the *realized* earnings change gives a **+1.40%** spread (t = 4.1). Sorting on realized-minus-ML-forecast gives **+1.73%** (t = 6.3). |
 
-**Interpretation.** The predictable part of earnings is already in prices before
-the announcement. Returns respond to the part the model *could not* forecast, and
-the ML-unexpected component explains announcement returns better than the naive
-surprise does. So the ML forecast behaves like a decent proxy for market
-expectations, not a source of mispricing. This holds in this sample of 92 current
-mega-caps, 2015–2026. Mega-caps are heavily covered by analysts, which is exactly
-where you'd expect this result. The null may not carry over to small caps.
+**Interpretation.** These results are consistent with the predictable part of
+earnings already being in prices before the announcement, but they don't prove it:
+with this sample size, a small effect could go undetected. Returns line up with the
+part the model *could not* forecast, and sorting on that ML-unexpected component
+gives a larger spread than sorting on the naive surprise (the difference between the
+two spreads was not formally tested). So the ML forecast may behave like a proxy for
+market expectations rather than a source of mispricing. This applies to this sample
+of 92 large US firms, 2015–2026. Large firms are heavily covered by analysts, which is
+where you'd most expect this result, and it may not carry over to small caps.
 
 ![Forecast accuracy](results/figures/forecast_accuracy.png)
 
@@ -39,8 +41,10 @@ change in quarterly net income, scaled by assets. The seasonal random walk forec
 Operations*) filed within 75 days after the fiscal quarter end. Its EDGAR acceptance time decides the
 event day: at or after 16:00 ET, the event is assigned to the next trading session.
 > The submissions API's `acceptanceDateTime` is **not** the true acceptance time. It is shifted by twice
-> the Eastern UTC offset. I verified this by hand against EDGAR filing-index pages and corrected it in
-> `sec.api_time_to_eastern`, with a regression test that uses those hand-checked values.
+> the Eastern UTC offset. This was hand-checked against the EDGAR filing-index pages of **three Apple
+> filings only** (one in January, two in July), then applied to every firm and year. It is corrected in
+> `sec.api_time_to_eastern`, with a regression test that uses those three values. The large spread from
+> sorting on realized earnings suggests event dates are broadly right, but that is not a per-firm check.
 
 **Features (17, all point-in-time):**
 - lagged scaled earnings `ni_l1..ni_l5`
@@ -125,7 +129,7 @@ which is gitignored. Stages can be run separately with `--stage data|model|evalu
 ## Repository layout
 
 ```
-config/universe.txt        tickers (current S&P 100 members)
+config/universe.txt        tickers (large US firms; hand-written list, see Limitations)
 src/earnml/sec.py          EDGAR client, 8-K Item 2.02 release times, point-in-time XBRL quarters
 src/earnml/prices.py       Yahoo Finance adjusted closes (yfinance), cached
 src/earnml/events.py       release -> event-day mapping, market-adjusted CARs
@@ -140,7 +144,9 @@ results/                   committed outputs from the run reported above
 
 ## Limitations and data-access caveats (read before citing)
 
-1. **Survivorship bias.** The universe is *today's* S&P 100, and free sources do not cover
+1. **Survivorship bias.** The universe is a list of large US firms that are prominent today. It
+   was written from memory to approximate the S&P 100 and has **not** been checked against an
+   official constituent list, so it should not be described as the S&P 100. Free sources do not cover
    delisted firms well. Firms that failed, were acquired or dropped out are missing. This mainly
    affects the return tests' generality. Proper work needs CRSP/Compustat (WRDS access) or a
    point-in-time constituent list.

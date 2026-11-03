@@ -1,5 +1,6 @@
-# Universe: large-cap US stocks that are CURRENT S&P 100 members (as of 2026).
-# NOTE: choosing today's constituents introduces survivorship bias - see README.
+# Universe: large US firms that are prominent today, written from memory to
+# approximate the S&P 100. NOT checked against an official constituent list.
+# NOTE: choosing firms that are large today introduces survivorship bias - see README.
 AAPL
 ABBV
 ABT
